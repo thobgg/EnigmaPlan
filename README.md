@@ -1,3 +1,5 @@
+<img src="docs/logo.png" alt="EnigmaPlan" width="96" align="right">
+
 # EnigmaPlan
 
 **Schnell mal das Programmheft durchblättern – tap, tap, tap – fertig.**
@@ -7,8 +9,23 @@ EnigmaPlan ist eine schlanke Android-App für deinen **Enigma2-Receiver** (Vu+, 
 
 Die App macht bewusst nur das: kein Streaming und keine Fernbedienung, dafür schnell und übersichtlich, am Handy hochkant genauso wie auf dem Tablet.
 
+![TV-Zeitung auf dem Tablet](docs/screenshots/tablet-zeitung.webp)
+
+<p>
+<img src="docs/screenshots/handy-programm.webp" width="19%" alt="Programm">
+<img src="docs/screenshots/handy-sender.webp" width="19%" alt="Wochenprogramm eines Senders">
+<img src="docs/screenshots/handy-sendung.webp" width="19%" alt="Sendung mit Aufnehmen">
+<img src="docs/screenshots/handy-serie.webp" width="19%" alt="Serien-Timer">
+<img src="docs/screenshots/handy-timer.webp" width="19%" alt="Timer">
+</p>
+
+## Download
+
+Die aktuelle APK gibt es unter **[Releases](https://github.com/thobgg/EnigmaPlan/releases/latest)**. Lade sie herunter und öffne sie auf dem Handy oder Tablet. Android fragt einmal, ob der Browser Apps installieren darf.
+
 ## Funktionen
 
+- **TV-Zeitung** auf dem Tablet und im Querformat: alle Sender untereinander, die Zeit nach rechts, jede Sendung ein Kästchen, eine rote Linie für „jetzt“, Sprung auf 20:15 oder einen Tag
 - **Programm:** Senderliste aus deinen Bouquets mit laufender und nächster Sendung
 - **Senderprogramm über die ganze Woche:** Tagesleiste (Jetzt · 20:15 · Heute · Morgen · …), Wischen wechselt den Sender
 - **Aufnehmen mit einem Tipp:** Aufnahme-Knopf direkt in jeder Zeile, Sendungen mit Timer sind rot markiert
@@ -18,14 +35,14 @@ Die App macht bewusst nur das: kein Streaming und keine Fernbedienung, dafür sc
 - **Serien-Timer:** Mo–Fr, wöchentlich, täglich oder eigene Wochentage, direkt aus der Sendung („Als Serie aufnehmen“)
 - **Timer:** bearbeiten (Titel, Datum, Zeiten), aktivieren/deaktivieren, löschen, von Hand anlegen, Erledigte aufräumen
 - **Aufnahmen:** Liste mit Größe und Beschreibung, löschen, Anzeige des freien Festplattenplatzes
-- **Handy und Tablet:** hochkant eine Spalte; auf dem Tablet oder quer stehen die Sender neben dem Programm, Timer und Aufnahmen mehrspaltig
+- **Handy und Tablet:** hochkant eine Spalte; auf dem Tablet oder quer die TV-Zeitung oder wahlweise Senderliste und Programm nebeneinander, Timer und Aufnahmen mehrspaltig
 - Material You (Farben passend zum Handy), Dunkelmodus
 
 ## Kompatibilität
 
 Funktioniert mit jedem **Enigma2-Receiver mit [OpenWebif](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif)**, zum Beispiel Vu+, GigaBlue, Zgemma, Octagon, Edision, Xtrend, Formuler oder Dreambox (mit OpenWebif), mit Images wie VTi, OpenATV, OpenPLi, OpenViX oder OpenBH.
 
-Getestet mit: Vu+ Duo2, VTi 15.0.04, OpenWebif 1.2.8.
+Getestet mit: Vu+ Duo2, VTi 15.0.04, OpenWebif 1.2.8 – auf Galaxy S25 Ultra und Galaxy Tab S8 Ultra.
 
 Voraussetzung: Android 8.0 oder neuer, Handy und Box im selben Netz.
 

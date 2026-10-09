@@ -102,12 +102,13 @@ fun GuideScreen(vm: MainVm, onEvent: (Event) -> Unit, onChannel: (Service) -> Un
                     Box(Modifier.width(totalW).fillMaxHeight()) {
                         var t = (visFrom / 1800 + 1) * 1800
                         while (t < visTo && t < end) {
-                            val midnight = localTime(t) == LocalTime.MIDNIGHT
+                            val tick = t // eigene Kopie: der offset-Lambda läuft erst beim Layout
+                            val midnight = localTime(tick) == LocalTime.MIDNIGHT
                             Text(
-                                if (midnight) dayLabel(t) else hm(t),
-                                Modifier.offset { IntOffset(xPx(t) + 4, 0) }.align(Alignment.CenterStart),
+                                if (midnight) dayLabel(tick) else hm(tick),
+                                Modifier.offset { IntOffset(xPx(tick) + 4, 0) }.align(Alignment.CenterStart),
                                 style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (midnight || localTime(t).minute == 0) FontWeight.Bold else FontWeight.Normal,
+                                fontWeight = if (midnight || localTime(tick).minute == 0) FontWeight.Bold else FontWeight.Normal,
                                 color = if (midnight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             t += 1800

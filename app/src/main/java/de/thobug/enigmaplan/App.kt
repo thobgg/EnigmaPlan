@@ -188,7 +188,9 @@ fun App(vm: MainVm) {
             },
         ) { pad ->
             // Quer liegt die Android-Navigationsleiste seitlich: Inhalt nicht darunter zeichnen
-            Row(Modifier.padding(pad).fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))) {
+            Row(Modifier.padding(pad).fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(
+                // ohne untere Navigationsleiste (breit) auch unten Platz für die Systemleiste lassen
+                if (wide) WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom else WindowInsetsSides.Horizontal))) {
                 if (wide) {
                     NavigationRail {
                         Tab.entries.forEach { t ->
