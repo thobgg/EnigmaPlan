@@ -1,7 +1,16 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// Release-Signierung aus keystore.properties (nicht einchecken). Fehlt die Datei, wird mit dem Debug-Schlüssel signiert.
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
 }
 
 android {
@@ -16,12 +25,23 @@ android {
         versionName = "1.3"
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystorePropsFile.exists()) {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (keystorePropsFile.exists()) "release" else "debug")
         }
     }
     compileOptions {

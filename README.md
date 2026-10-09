@@ -32,8 +32,9 @@ Voraussetzung: Android 8.0 oder neuer, Handy und Box im selben Netz.
 ## Einrichtung
 
 1. Installiere die App.
-2. Trage unter ⚙ die IP-Adresse der Box ein, z. B. `192.168.178.94`.
-3. Benutzer und Passwort trägst du nur ein, wenn OpenWebif mit Passwortschutz läuft.
+2. Trage unter ⋮ → Einstellungen die IP-Adresse der Box ein, z. B. `192.168.178.50`. Sie steht in der Box unter Menü → Einstellungen → System → Netzwerk oder in der Geräteliste deines Routers.
+3. Benutzer und Passwort brauchst du nur, wenn OpenWebif mit Passwortschutz läuft (meist Benutzer `root`).
+4. Optional: Aufnahme-Puffer (Vor-/Nachlauf) einstellen – Standard 3 / 10 Minuten.
 
 ## Tipp: lückenhaftes EPG
 
@@ -47,6 +48,10 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
 Benötigt JDK 17+ und das Android-SDK (compileSdk 36). Die App ist mit Kotlin und Jetpack Compose gebaut und hat keine Abhängigkeiten außer AndroidX. Sie spricht die OpenWebif-JSON-API (`/api/…`) direkt an.
+
+## Lizenz
+
+GPL-3.0, siehe [LICENSE](LICENSE). Senderlogos und Sendernamen gehören den jeweiligen Sendern; die App zeigt nur die Picons, die auf deiner Box liegen.
 
 ## Autor
 

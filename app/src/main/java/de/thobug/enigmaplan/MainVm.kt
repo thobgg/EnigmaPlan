@@ -20,7 +20,7 @@ fun nowSec() = System.currentTimeMillis() / 1000
 class MainVm(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("vu", 0)
 
-    var host by mutableStateOf(prefs.getString("host", "192.168.178.94")!!)
+    var host by mutableStateOf(prefs.getString("host", "")!!)
         private set
     var user by mutableStateOf(prefs.getString("user", "")!!)
         private set
@@ -71,8 +71,8 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                 offline = null
             } catch (e: Exception) {
                 val msg = e.message ?: e.toString()
-                if (bouquets.isEmpty()) offline = msg
-                messages.send(msg)
+                // Ohne Verbindung zeigt der Offline-Bildschirm die Meldung, sonst ein Snackbar
+                if (bouquets.isEmpty()) offline = msg else messages.send(msg)
             } finally {
                 loading = false
                 now = nowSec()
@@ -81,6 +81,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun refreshAll() = run {
+        if (host.isBlank()) throw java.io.IOException("Willkommen! Trag unter Einstellungen die IP-Adresse deiner Box ein.")
         bouquets = api.bouquets()
         val saved = prefs.getString("bref", null)
         bref = (bouquets.firstOrNull { it.ref == saved } ?: bouquets.firstOrNull())?.ref
@@ -89,6 +90,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             nowNext = api.nowNext(it)
         }
         timers = api.timers()
+        guide = null
         val keep = selected?.ref
         epg.keys.retainAll(setOfNotNull(keep))
         keep?.let { epg[it] = api.epgService(it) }
@@ -99,6 +101,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         prefs.edit { putString("bref", ref) }
         selected = null
         epg.clear()
+        guide = null
         services = api.services(ref)
         nowNext = api.nowNext(ref)
     }
@@ -132,6 +135,14 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         if (k in picons) return
         picons[k] = null
         viewModelScope.launch { api.picon(ref)?.let { picons[k] = it.asImageBitmap() } }
+    }
+
+    /** Wochenprogramm aller Sender für die TV-Zeitung. */
+    var guide by mutableStateOf<List<Event>?>(null)
+
+    fun loadGuide() {
+        val b = bref ?: return
+        run { guide = api.epgMulti(b, epoch(java.time.LocalDate.now(zone), java.time.LocalTime.MIDNIGHT)) }
     }
 
     var margins by mutableStateOf<Pair<Int, Int>?>(null)

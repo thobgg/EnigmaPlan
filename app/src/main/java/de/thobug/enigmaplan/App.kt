@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +18,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.CalendarViewWeek
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
@@ -96,6 +102,7 @@ fun App(vm: MainVm) {
     var sheet by remember { mutableStateOf<SheetState?>(null) }
     var settings by remember { mutableStateOf(false) }
     var about by remember { mutableStateOf(false) }
+    var guideMode by rememberSaveable { mutableStateOf(true) } // TV-Zeitung statt Liste (nur breit)
     val snack = remember { SnackbarHostState() }
     // Aufnahme-Knopf in der Zeile: einplanen, oder vorhandenen Timer öffnen
     val quickRec: (Event) -> Unit = { e ->
@@ -138,7 +145,8 @@ fun App(vm: MainVm) {
             topBar = {
                 TopAppBar(
                     title = {
-                        if (phoneChannel) Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (tab == Tab.Programm && wide && guideMode) Text("TV-Zeitung")
+                        else if (phoneChannel) Row(verticalAlignment = Alignment.CenterVertically) {
                             ChannelLogo(vm, vm.selected!!.ref, vm.selected!!.name, 52.dp)
                             Spacer(Modifier.width(12.dp))
                             Text(vm.selected!!.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -154,6 +162,10 @@ fun App(vm: MainVm) {
                     },
                     actions = {
                         if (tab == Tab.Programm && vm.bouquets.size > 1 && !phoneChannel) BouquetPicker(vm)
+                        if (tab == Tab.Programm && wide) IconButton({ guideMode = !guideMode }) {
+                            if (guideMode) Icon(Icons.AutoMirrored.Filled.ViewList, "Listenansicht")
+                            else Icon(Icons.Default.CalendarViewWeek, "TV-Zeitung")
+                        }
                         IconButton(refresh) { Icon(Icons.Default.Refresh, "Aktualisieren") }
                         OverflowMenu(onSettings = { settings = true }, onAbout = { about = true })
                     },
@@ -175,7 +187,8 @@ fun App(vm: MainVm) {
                 }
             },
         ) { pad ->
-            Row(Modifier.padding(pad).fillMaxSize()) {
+            // Quer liegt die Android-Navigationsleiste seitlich: Inhalt nicht darunter zeichnen
+            Row(Modifier.padding(pad).fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))) {
                 if (wide) {
                     NavigationRail {
                         Tab.entries.forEach { t ->
@@ -196,9 +209,12 @@ fun App(vm: MainVm) {
                     ) {
                         val off = vm.offline
                         if (off != null && vm.bouquets.isEmpty()) {
-                            Offline(off, onRetry = vm::refreshAll, onSettings = { settings = true })
+                            Offline(off, firstStart = vm.host.isBlank(), onRetry = vm::refreshAll, onSettings = { settings = true })
                         } else when (tab) {
-                            Tab.Programm -> ProgramScreen(vm, wide,
+                            Tab.Programm -> if (wide && guideMode) GuideScreen(vm,
+                                onEvent = { sheet = SheetState.OfEvent(it) },
+                                onChannel = { guideMode = false; vm.select(it) })
+                            else ProgramScreen(vm, wide,
                                 onEvent = { sheet = SheetState.OfEvent(it) }, onRec = quickRec,
                                 onManual = { sheet = SheetState.NewTimer(it) })
                             Tab.Suche -> SearchScreen(vm, { sheet = SheetState.OfEvent(it) }, quickRec)
@@ -312,7 +328,7 @@ private fun BouquetPicker(vm: MainVm) {
 }
 
 @Composable
-private fun Offline(msg: String, onRetry: () -> Unit, onSettings: () -> Unit) {
+private fun Offline(msg: String, firstStart: Boolean, onRetry: () -> Unit, onSettings: () -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -320,8 +336,11 @@ private fun Offline(msg: String, onRetry: () -> Unit, onSettings: () -> Unit) {
     ) {
         Text(msg, style = MaterialTheme.typography.titleMedium)
         Row(Modifier.padding(top = 16.dp)) {
-            Button(onRetry) { Text("Erneut versuchen") }
-            TextButton(onSettings) { Text("Einstellungen") }
+            if (firstStart) Button(onSettings) { Text("Einstellungen öffnen") }
+            else {
+                Button(onRetry) { Text("Erneut versuchen") }
+                TextButton(onSettings) { Text("Einstellungen") }
+            }
         }
     }
 }

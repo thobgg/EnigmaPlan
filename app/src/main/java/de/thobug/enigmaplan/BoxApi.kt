@@ -60,7 +60,11 @@ data class Disk(val free: String, val capacity: String, val usedFraction: Float)
 fun normRef(r: String) = r.split(':').take(10).joinToString(":").uppercase()
 
 /** DVB-Steuerzeichen: 0x8A = Zeilenumbruch, übrige C1-Zeichen (z. B. 0x86/0x87 Hervorhebung) entfernen. */
-private fun clean(t: String) = t.replace('\u008A', '\n').replace(Regex("[\u0080-\u009F]"), "").trim()
+private fun clean(t: String) = t.replace('\u008A', '\n').replace(Regex("[\u0080-\u009F]"), "")
+    // OpenWebif liefert manche Zeichen HTML-kodiert
+    .replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'")
+    .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    .trim()
 
 private fun JSONObject.s(k: String) = if (has(k) && !isNull(k)) clean(optString(k)) else ""
 private fun JSONObject.l(k: String) = if (has(k) && !isNull(k)) optLong(k) else 0L
@@ -149,6 +153,9 @@ class BoxApi(host: String, private val user: String, private val pass: String) {
     /** Jetzt/Danach je Sender, Schlüssel = normRef. */
     suspend fun nowNext(bref: String): Map<String, List<Event>> =
         events(get("epgnownext", mapOf("bRef" to bref))).groupBy { normRef(it.sref) }
+
+    /** Programm aller Sender eines Bouquets ab [time] (die Box liefert alles bis zum EPG-Ende). */
+    suspend fun epgMulti(bref: String, time: Long) = events(get("epgmulti", mapOf("bRef" to bref, "time" to time)))
 
     suspend fun epgService(sref: String) = events(get("epgservice", mapOf("sRef" to sref)))
     suspend fun search(q: String) = events(get("epgsearch", mapOf("search" to q)))
