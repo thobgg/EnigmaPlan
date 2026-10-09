@@ -134,6 +134,20 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { api.picon(ref)?.let { picons[k] = it.asImageBitmap() } }
     }
 
+    var margins by mutableStateOf<Pair<Int, Int>?>(null)
+
+    fun loadMargins() {
+        viewModelScope.launch {
+            margins = runCatching { api.recordingMargins(nowNext.values.firstOrNull()?.firstOrNull()) }.getOrNull()
+        }
+    }
+
+    fun saveMargins(before: Int, after: Int) = run {
+        api.setRecordingMargins(before, after)
+        margins = before to after
+        messages.send("Aufnahme-Puffer: $before Min. vorher, $after Min. nachher")
+    }
+
     fun loadBoxInfo() {
         viewModelScope.launch { boxInfo = runCatching { api.info() }.getOrNull() }
     }

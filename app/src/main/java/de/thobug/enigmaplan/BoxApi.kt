@@ -70,14 +70,21 @@ private fun JSONObject.i(k: String) = if (has(k) && !isNull(k)) optInt(k) else 0
 class BoxApi(host: String, private val user: String, private val pass: String) {
     private val base = host.trim().trimEnd('/').let { if (it.startsWith("http")) it else "http://$it" }
 
-    private suspend fun get(path: String, params: Map<String, Any?> = emptyMap()): JSONObject =
+    private suspend fun get(path: String, params: Map<String, Any?> = emptyMap(), post: Boolean = false): JSONObject =
         withContext(Dispatchers.IO) {
             val q = params.filterValues { it != null }.entries.joinToString("&") {
                 it.key + "=" + URLEncoder.encode(it.value.toString(), "UTF-8")
             }
-            val conn = URL("$base/api/$path" + if (q.isEmpty()) "" else "?$q").openConnection() as HttpURLConnection
+            val url = "$base/api/$path" + if (q.isEmpty() || post) "" else "?$q"
+            val conn = URL(url).openConnection() as HttpURLConnection
             conn.connectTimeout = 5000
             conn.readTimeout = 30000
+            if (post) {
+                conn.requestMethod = "POST"
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                conn.outputStream.use { it.write(q.toByteArray()) }
+            }
             if (user.isNotEmpty()) {
                 val auth = Base64.encodeToString("$user:$pass".toByteArray(), Base64.NO_WRAP)
                 conn.setRequestProperty("Authorization", "Basic $auth")
@@ -195,6 +202,23 @@ class BoxApi(host: String, private val user: String, private val pass: String) {
 
     suspend fun addByEvent(e: Event) {
         get("timeraddbyeventid", mapOf("sRef" to e.sref, "eventid" to e.id)).check("Timer konnte nicht angelegt werden")
+    }
+
+    /** Aufnahme-Puffer der Box (Minuten) aus den Box-Einstellungen; fehlt ein Wert, gilt der Box-Standard. */
+    suspend fun recordingMargins(sample: Event?): Pair<Int, Int> {
+        val a = get("settings").optJSONArray("settings")
+        val map = (0 until (a?.length() ?: 0)).mapNotNull { a!!.optJSONArray(it) }
+            .associate { it.optString(0) to it.optString(1) }
+        val before = map["config.recording.margin_before"]?.toIntOrNull()
+        val after = map["config.recording.margin_after"]?.toIntOrNull()
+        if (before != null && after != null) return before to after
+        val fallback = sample?.let { margins(it) } ?: (0 to 0)
+        return (before ?: fallback.first) to (after ?: fallback.second)
+    }
+
+    suspend fun setRecordingMargins(before: Int, after: Int) {
+        get("saveconfig", mapOf("key" to "config.recording.margin_before", "value" to before), post = true).check("Vorlauf nicht gespeichert")
+        get("saveconfig", mapOf("key" to "config.recording.margin_after", "value" to after), post = true).check("Nachlauf nicht gespeichert")
     }
 
     /** Vor-/Nachlauf der Box in Minuten. */

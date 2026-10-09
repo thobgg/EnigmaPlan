@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
@@ -32,6 +33,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -62,6 +64,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -228,7 +231,7 @@ private fun OverflowMenu(onSettings: () -> Unit, onAbout: () -> Unit) {
     Box {
         IconButton({ open = true }) { Icon(Icons.Default.MoreVert, "Menü") }
         DropdownMenu(open, { open = false }) {
-            DropdownMenuItem({ Text("Box-Verbindung") }, onClick = { open = false; onSettings() },
+            DropdownMenuItem({ Text("Einstellungen") }, onClick = { open = false; onSettings() },
                 leadingIcon = { Icon(Icons.Default.Settings, null) })
             DropdownMenuItem({ Text("Über EnigmaPlan") }, onClick = { open = false; onAbout() },
                 leadingIcon = { Icon(Icons.Outlined.Info, null) })
@@ -323,25 +326,68 @@ private fun Offline(msg: String, onRetry: () -> Unit, onSettings: () -> Unit) {
     }
 }
 
+const val DEFAULT_BEFORE = 3
+const val DEFAULT_AFTER = 10
+
 @Composable
 private fun SettingsDialog(vm: MainVm, onDismiss: () -> Unit) {
     var host by remember { mutableStateOf(vm.host) }
     var user by remember { mutableStateOf(vm.user) }
     var pass by remember { mutableStateOf(vm.pass) }
+    LaunchedEffect(Unit) { vm.loadMargins() }
+    var before by remember { mutableStateOf<Int?>(null) }
+    var after by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(vm.margins) { vm.margins?.let { before = it.first; after = it.second } }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Box-Verbindung") },
+        title = { Text("Einstellungen") },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("Box-Verbindung", style = MaterialTheme.typography.titleSmall)
                 OutlinedTextField(host, { host = it }, label = { Text("IP-Adresse der Box") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), modifier = Modifier.padding(top = 4.dp))
                 OutlinedTextField(user, { user = it }, label = { Text("Benutzer (optional)") }, singleLine = true,
                     modifier = Modifier.padding(top = 8.dp))
                 OutlinedTextField(pass, { pass = it }, label = { Text("Passwort (optional)") }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation(), modifier = Modifier.padding(top = 8.dp))
+
+                Text("Aufnahme-Puffer", Modifier.padding(top = 20.dp), style = MaterialTheme.typography.titleSmall)
+                Text("Wird in der Box gespeichert und gilt für alle neuen Timer – damit Anfang und Ende nicht fehlen, " +
+                    "wenn ein Sender früher anfängt oder überzieht.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val b = before
+                val a = after
+                if (b == null || a == null) Text("Lade …", Modifier.padding(top = 8.dp))
+                else {
+                    Stepper("Vorlauf", b) { before = it }
+                    Stepper("Nachlauf", a) { after = it }
+                    TextButton({ before = DEFAULT_BEFORE; after = DEFAULT_AFTER }, enabled = b != DEFAULT_BEFORE || a != DEFAULT_AFTER) {
+                        Text("Standard ($DEFAULT_BEFORE / $DEFAULT_AFTER Min.)")
+                    }
+                }
             }
         },
-        confirmButton = { TextButton({ vm.saveSettings(host, user, pass); onDismiss() }) { Text("Speichern") } },
+        confirmButton = {
+            TextButton({
+                val m = vm.margins
+                val b = before
+                val a = after
+                if (host.trim() != vm.host || user.trim() != vm.user || pass != vm.pass) vm.saveSettings(host, user, pass)
+                else if (b != null && a != null && m != null && (b to a) != m) vm.saveMargins(b, a)
+                onDismiss()
+            }) { Text("Speichern") }
+        },
         dismissButton = { TextButton(onDismiss) { Text("Abbrechen") } },
     )
+}
+
+/** Minuten mit − / + einstellen (0–60). */
+@Composable
+private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f))
+        FilledTonalIconButton({ onChange((value - 1).coerceAtLeast(0)) }, enabled = value > 0) { Icon(Icons.Default.Remove, "weniger") }
+        Text("$value Min.", Modifier.width(72.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
+        FilledTonalIconButton({ onChange((value + 1).coerceAtMost(60)) }, enabled = value < 60) { Icon(Icons.Default.Add, "mehr") }
+    }
 }
