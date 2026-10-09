@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -16,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +25,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,17 +85,14 @@ private fun ConfirmDialog(title: String, text: String, confirm: String, onConfir
 /* ------------------------------------------------------------ Sendung */
 
 @Composable
-fun EventSheet(vm: MainVm, e: Event, onDismiss: () -> Unit, onEditTimer: (Timer) -> Unit) {
+fun EventSheet(vm: MainVm, e: Event, onDismiss: () -> Unit, onEditTimer: (Timer) -> Unit, onSeries: (Event) -> Unit) {
     val timer = vm.timerFor(e)
     Sheet(onDismiss) {
         ChannelLogo(vm, e.sref, e.sname, 80.dp)
         Text(e.title, Modifier.padding(top = 8.dp), style = MaterialTheme.typography.headlineSmall)
         Meta("${e.sname} · ${dayLabel(e.begin)} · ${hm(e.begin)} – ${hm(e.end)} (${minutes(e.duration)})")
         if (timer != null) Row(Modifier.padding(top = 8.dp)) { Chip("● Timer gesetzt", RecRed, androidx.compose.ui.graphics.Color.White) }
-        if (e.short.isNotEmpty() && e.short != e.title)
-            Text(e.short, Modifier.padding(top = 12.dp), fontWeight = FontWeight.SemiBold)
-        if (e.long.isNotEmpty()) Text(e.long, Modifier.padding(top = 8.dp))
-        Column(Modifier.padding(top = 20.dp)) {
+        Column(Modifier.padding(top = 16.dp)) {
             when {
                 timer != null -> FilledTonalButton({ onEditTimer(timer) }, Modifier.fillMaxWidth()) { Text("Timer bearbeiten") }
                 e.end > vm.now -> Button(
@@ -102,18 +103,31 @@ fun EventSheet(vm: MainVm, e: Event, onDismiss: () -> Unit, onEditTimer: (Timer)
                     Text("Aufnehmen")
                 }
             }
+            if (timer == null && e.end > vm.now) OutlinedButton({ onSeries(e) }, Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Icon(Icons.Default.Repeat, null, Modifier.padding(end = 8.dp))
+                Text("Als Serie aufnehmen …")
+            }
         }
+        if (e.short.isNotEmpty() && e.short != e.title)
+            Text(e.short, Modifier.padding(top = 12.dp), fontWeight = FontWeight.SemiBold)
+        if (e.long.isNotEmpty()) Text(e.long, Modifier.padding(top = 8.dp))
     }
 }
 
 /* ------------------------------------------------------------ Timer */
 
 @Composable
-fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, onDismiss: () -> Unit) {
+fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, presetEvent: Event?, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
-    val b0 = t?.begin ?: ((nowSec() / 900 + 1) * 900)
-    val e0 = t?.end ?: (b0 + 3600)
-    var name by remember { mutableStateOf(t?.name ?: "") }
+    val b0 = t?.begin ?: presetEvent?.begin ?: ((nowSec() / 900 + 1) * 900)
+    val e0 = t?.end ?: presetEvent?.end ?: (b0 + 3600)
+    var name by remember { mutableStateOf(t?.name ?: presetEvent?.title ?: "") }
+    var repeated by remember {
+        mutableStateOf(t?.repeated ?: presetEvent?.let {
+            // Werktags-Sendung -> Mo–Fr, Wochenende -> wöchentlich
+            if (localDate(it.begin).dayOfWeek.value <= 5) REPEAT_WORKDAYS else weekdayBit(localDate(it.begin))
+        } ?: 0)
+    }
     var date by remember { mutableStateOf(localDate(b0)) }
     var begin by remember { mutableStateOf(localTime(b0).withSecond(0)) }
     var end by remember { mutableStateOf(localTime(e0).withSecond(0)) }
@@ -121,6 +135,16 @@ fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, onDismiss: () -> Unit)
     var sref by remember { mutableStateOf(t?.sref ?: presetRef ?: vm.services.firstOrNull()?.ref ?: "") }
     var askDelete by remember { mutableStateOf(false) }
     val running = t?.state == 2
+    // Vor-/Nachlauf der Box auf die Sendungszeit anwenden
+    LaunchedEffect(presetEvent) {
+        presetEvent?.let { e ->
+            vm.margins(e) { before, after ->
+                begin = localTime(e.begin - before * 60L).withSecond(0)
+                end = localTime(e.end + after * 60L).withSecond(0)
+                date = localDate(e.begin - before * 60L)
+            }
+        }
+    }
 
     fun pickTime(cur: LocalTime, set: (LocalTime) -> Unit) =
         TimePickerDialog(ctx, { _, h, m -> set(LocalTime.of(h, m)) }, cur.hour, cur.minute, true).show()
@@ -149,7 +173,7 @@ fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, onDismiss: () -> Unit)
             }
         }
 
-        Text("Datum", Modifier.padding(top = 12.dp), style = MaterialTheme.typography.labelLarge)
+        Text(if (repeated != 0) "Erster Termin" else "Datum", Modifier.padding(top = 12.dp), style = MaterialTheme.typography.labelLarge)
         OutlinedButton(
             { DatePickerDialog(ctx, { _, y, m, d -> date = java.time.LocalDate.of(y, m + 1, d) }, date.year, date.monthValue - 1, date.dayOfMonth).show() },
             Modifier.fillMaxWidth(), enabled = !running,
@@ -166,6 +190,9 @@ fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, onDismiss: () -> Unit)
             }
         }
 
+        Text("Wiederholen", Modifier.padding(top = 12.dp), style = MaterialTheme.typography.labelLarge)
+        RepeatPicker(repeated, date) { repeated = it }
+
         Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(!justplay, { justplay = false }, { Text("Aufnehmen") })
             FilterChip(justplay, { justplay = true }, { Text("Nur umschalten") })
@@ -177,11 +204,11 @@ fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, onDismiss: () -> Unit)
                 var en = epoch(date, end)
                 if (en <= b) en += 86400 // über Mitternacht
                 val n = name.trim().ifEmpty { "Aufnahme" }
-                if (t == null) vm.addTimer(sref, n, b, en, justplay, onDismiss)
-                else vm.changeTimer(t, n, b, en, justplay, onDismiss)
+                if (t == null) vm.addTimer(sref, n, presetEvent?.short ?: "", b, en, justplay, repeated, onDismiss)
+                else vm.changeTimer(t, n, b, en, justplay, repeated, onDismiss)
             },
             Modifier.fillMaxWidth().padding(top = 20.dp), enabled = !vm.loading && sref.isNotEmpty(),
-        ) { Text(if (t == null) "Timer anlegen" else "Speichern") }
+        ) { Text(if (t != null) "Speichern" else if (repeated != 0) "Serien-Timer anlegen" else "Timer anlegen") }
 
         if (t != null) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton({ vm.toggleTimer(t, onDismiss) }, Modifier.weight(1f), enabled = !vm.loading) {
@@ -196,9 +223,30 @@ fun TimerSheet(vm: MainVm, t: Timer?, presetRef: String?, onDismiss: () -> Unit)
     if (askDelete && t != null) ConfirmDialog(
         "Timer löschen?",
         if (running) "„${t.name}“ wird gerade aufgenommen. Die Aufnahme wird gestoppt, das bisher Aufgenommene bleibt erhalten."
+        else if (t.repeated != 0) "Der Serien-Timer „${t.name}“ (${repeatLabel(t.repeated)}, ${hm(t.begin)}) wird mit allen Wiederholungen gelöscht."
         else "„${t.name}“ am ${dayLabel(t.begin)} um ${hm(t.begin)} wird gelöscht.",
         "Löschen", { vm.deleteTimer(t, onDismiss) }, { askDelete = false },
     )
+}
+
+/** Wiederholung wählen: Schnellauswahl plus einzelne Wochentage. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun RepeatPicker(mask: Int, date: java.time.LocalDate, onChange: (Int) -> Unit) {
+    val weekly = weekdayBit(date)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(mask == 0, { onChange(0) }, { Text("Einmal") })
+        FilterChip(mask == REPEAT_WORKDAYS, { onChange(REPEAT_WORKDAYS) }, { Text("Mo–Fr") })
+        FilterChip(mask == weekly, { onChange(weekly) }, { Text("Wöchentlich (${repeatLabel(weekly)})") })
+        FilterChip(mask == REPEAT_DAILY, { onChange(REPEAT_DAILY) }, { Text("Täglich") })
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So").forEachIndexed { i, d ->
+            val bit = 1 shl i
+            val on = mask and bit != 0
+            FilledIconToggleButton(on, { onChange(mask xor bit) }) { Text(d, style = MaterialTheme.typography.labelMedium) }
+        }
+    }
 }
 
 /* ------------------------------------------------------------ Aufnahme */

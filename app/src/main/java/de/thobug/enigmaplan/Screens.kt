@@ -413,7 +413,7 @@ fun TimerChips(t: Timer) {
         if (t.state == 2) add { Chip("● Nimmt auf", RecRed, Color.White) }
         if (t.state == 3) add { Chip("Erledigt") }
         if (t.disabled) add { Chip("Deaktiviert", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer) }
-        if (t.repeated != 0) add { Chip("Serie") }
+        if (t.repeated != 0) add { Chip("↻ " + repeatLabel(t.repeated)) }
         if (t.justplay) add { Chip("Nur umschalten") }
     }
     if (chips.isNotEmpty()) FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

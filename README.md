@@ -15,6 +15,7 @@ Die App macht bewusst nur das: kein Streaming und keine Fernbedienung, dafür sc
 - **Senderlogos** (Picons von der Box)
 - **Herunterziehen** zum Aktualisieren
 - **Suche** im EPG der Box
+- **Serien-Timer:** Mo–Fr, wöchentlich, täglich oder eigene Wochentage, direkt aus der Sendung („Als Serie aufnehmen“)
 - **Timer:** bearbeiten (Titel, Datum, Zeiten), aktivieren/deaktivieren, löschen, von Hand anlegen, Erledigte aufräumen
 - **Aufnahmen:** Liste mit Größe und Beschreibung, löschen, Anzeige des freien Festplattenplatzes
 - **Handy und Tablet:** hochkant eine Spalte; auf dem Tablet oder quer stehen die Sender neben dem Programm, Timer und Aufnahmen mehrspaltig

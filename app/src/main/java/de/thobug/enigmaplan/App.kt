@@ -82,7 +82,7 @@ enum class Tab(val label: String, val icon: ImageVector) {
 sealed interface SheetState {
     data class OfEvent(val e: Event) : SheetState
     data class EditTimer(val t: Timer) : SheetState
-    data class NewTimer(val sref: String?) : SheetState
+    data class NewTimer(val sref: String?, val event: Event? = null) : SheetState
     data class OfMovie(val m: Movie) : SheetState
 }
 
@@ -210,9 +210,11 @@ fun App(vm: MainVm) {
 
     val close = { sheet = null }
     when (val s = sheet) {
-        is SheetState.OfEvent -> EventSheet(vm, s.e, close, onEditTimer = { sheet = SheetState.EditTimer(it) })
-        is SheetState.EditTimer -> TimerSheet(vm, s.t, null, close)
-        is SheetState.NewTimer -> TimerSheet(vm, null, s.sref, close)
+        is SheetState.OfEvent -> EventSheet(vm, s.e, close,
+            onEditTimer = { sheet = SheetState.EditTimer(it) },
+            onSeries = { sheet = SheetState.NewTimer(it.sref, it) })
+        is SheetState.EditTimer -> TimerSheet(vm, s.t, null, null, close)
+        is SheetState.NewTimer -> TimerSheet(vm, null, s.sref, s.event, close)
         is SheetState.OfMovie -> MovieSheet(vm, s.m, close)
         null -> {}
     }

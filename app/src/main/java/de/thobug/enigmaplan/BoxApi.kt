@@ -59,7 +59,10 @@ data class Disk(val free: String, val capacity: String, val usedFraction: Float)
 /** Service-Referenzen vergleichbar machen (Timer haben teils Namen/Pfade angehängt). */
 fun normRef(r: String) = r.split(':').take(10).joinToString(":").uppercase()
 
-private fun JSONObject.s(k: String) = if (has(k) && !isNull(k)) optString(k) else ""
+/** DVB-Steuerzeichen: 0x8A = Zeilenumbruch, übrige C1-Zeichen (z. B. 0x86/0x87 Hervorhebung) entfernen. */
+private fun clean(t: String) = t.replace('\u008A', '\n').replace(Regex("[\u0080-\u009F]"), "").trim()
+
+private fun JSONObject.s(k: String) = if (has(k) && !isNull(k)) clean(optString(k)) else ""
 private fun JSONObject.l(k: String) = if (has(k) && !isNull(k)) optLong(k) else 0L
 private fun JSONObject.i(k: String) = if (has(k) && !isNull(k)) optInt(k) else 0
 
@@ -194,22 +197,29 @@ class BoxApi(host: String, private val user: String, private val pass: String) {
         get("timeraddbyeventid", mapOf("sRef" to e.sref, "eventid" to e.id)).check("Timer konnte nicht angelegt werden")
     }
 
-    suspend fun addTimer(sref: String, name: String, begin: Long, end: Long, justplay: Boolean) {
+    /** Vor-/Nachlauf der Box in Minuten. */
+    suspend fun margins(e: Event): Pair<Int, Int> {
+        val ev = get("event", mapOf("sref" to e.sref, "idev" to e.id)).optJSONObject("event") ?: return 0 to 0
+        return ev.i("recording_margin_before") to ev.i("recording_margin_after")
+    }
+
+    suspend fun addTimer(sref: String, name: String, description: String, begin: Long, end: Long, justplay: Boolean, repeated: Int) {
         get(
             "timeradd", mapOf(
-                "sRef" to sref, "name" to name, "begin" to begin, "end" to end,
-                "justplay" to if (justplay) 1 else 0, "afterevent" to 3,
+                "sRef" to sref, "name" to name, "description" to description.ifEmpty { null },
+                "begin" to begin, "end" to end,
+                "justplay" to if (justplay) 1 else 0, "afterevent" to 3, "repeated" to repeated,
             )
         ).check("Timer konnte nicht angelegt werden")
     }
 
-    suspend fun changeTimer(t: Timer, name: String, begin: Long, end: Long, justplay: Boolean) {
+    suspend fun changeTimer(t: Timer, name: String, begin: Long, end: Long, justplay: Boolean, repeated: Int) {
         get(
             "timerchange", mapOf(
                 "sRef" to t.sref, "channelOld" to t.sref, "beginOld" to t.begin, "endOld" to t.end,
                 "name" to name, "begin" to begin, "end" to end, "description" to t.description,
                 "justplay" to if (justplay) 1 else 0, "disabled" to if (t.disabled) 1 else 0,
-                "afterevent" to t.afterevent, "repeated" to t.repeated,
+                "afterevent" to t.afterevent, "repeated" to repeated,
                 "dirname" to t.dirname.ifEmpty { null }, "tags" to t.tags.ifEmpty { null },
             )
         ).check("Timer konnte nicht gespeichert werden")

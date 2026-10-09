@@ -163,11 +163,21 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun record(e: Event, done: () -> Unit) =
         timerAction("Aufnahme geplant: ${e.title}", done) { api.addByEvent(e) }
 
-    fun addTimer(sref: String, name: String, begin: Long, end: Long, justplay: Boolean, done: () -> Unit) =
-        timerAction("Timer angelegt", done) { api.addTimer(sref, name, begin, end, justplay) }
+    fun addTimer(sref: String, name: String, description: String, begin: Long, end: Long, justplay: Boolean, repeated: Int, done: () -> Unit) =
+        timerAction(if (repeated != 0) "Serien-Timer angelegt: ${repeatLabel(repeated)}" else "Timer angelegt", done) {
+            api.addTimer(sref, name, description, begin, end, justplay, repeated)
+        }
 
-    fun changeTimer(t: Timer, name: String, begin: Long, end: Long, justplay: Boolean, done: () -> Unit) =
-        timerAction("Timer gespeichert", done) { api.changeTimer(t, name, begin, end, justplay) }
+    fun changeTimer(t: Timer, name: String, begin: Long, end: Long, justplay: Boolean, repeated: Int, done: () -> Unit) =
+        timerAction("Timer gespeichert", done) { api.changeTimer(t, name, begin, end, justplay, repeated) }
+
+    /** Vor-/Nachlauf der Box für eine Sendung (Minuten). */
+    fun margins(e: Event, result: (Int, Int) -> Unit) {
+        viewModelScope.launch {
+            val (b, a) = runCatching { api.margins(e) }.getOrDefault(0 to 0)
+            result(b, a)
+        }
+    }
 
     fun toggleTimer(t: Timer, done: () -> Unit) =
         timerAction(if (t.disabled) "Timer aktiviert" else "Timer deaktiviert", done) { api.toggleTimer(t) }
