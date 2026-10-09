@@ -103,9 +103,9 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         s?.let { loadEpg(it.ref) }
     }
 
-    /** Senderprogramm laden, falls noch nicht im Cache. */
+    /** Senderprogramm laden, falls noch nicht im Cache (leere Ergebnisse werden neu versucht). */
     fun loadEpg(ref: String) {
-        if (ref in epg) return
+        if (epg[ref]?.isNotEmpty() == true) return
         viewModelScope.launch {
             try { epg[ref] = api.epgService(ref) } catch (e: Exception) { messages.send(e.message ?: e.toString()) }
         }
