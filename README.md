@@ -44,3 +44,7 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
 Benötigt JDK 17+ und das Android-SDK (compileSdk 36). Die App ist mit Kotlin und Jetpack Compose gebaut und hat keine Abhängigkeiten außer AndroidX. Sie spricht die OpenWebif-JSON-API (`/api/…`) direkt an.
+
+## Autor
+
+© 2026 Thomas Bugge · [thomas@bgg-mail.de](mailto:thomas@bgg-mail.de) · [github.com/thobgg](https://github.com/thobgg)

@@ -15,7 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.LiveTv
 import androidx.compose.material.icons.outlined.Search
@@ -58,6 +60,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.LifecycleResumeEffect
 
 enum class Tab(val label: String, val icon: ImageVector) {
@@ -81,6 +89,7 @@ fun App(vm: MainVm) {
     var tab by rememberSaveable { mutableStateOf(Tab.Programm) }
     var sheet by remember { mutableStateOf<SheetState?>(null) }
     var settings by remember { mutableStateOf(false) }
+    var about by remember { mutableStateOf(false) }
     val snack = remember { SnackbarHostState() }
     // Aufnahme-Knopf in der Zeile: einplanen, oder vorhandenen Timer öffnen
     val quickRec: (Event) -> Unit = { e ->
@@ -132,7 +141,7 @@ fun App(vm: MainVm) {
                                 else -> vm.refreshAll()
                             }
                         }) { Icon(Icons.Default.Refresh, "Aktualisieren") }
-                        IconButton({ settings = true }) { Icon(Icons.Default.Settings, "Einstellungen") }
+                        OverflowMenu(onSettings = { settings = true }, onAbout = { about = true })
                     },
                 )
             },
@@ -193,6 +202,69 @@ fun App(vm: MainVm) {
         null -> {}
     }
     if (settings) SettingsDialog(vm) { settings = false }
+    if (about) AboutDialog(vm) { about = false }
+}
+
+@Composable
+private fun OverflowMenu(onSettings: () -> Unit, onAbout: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton({ open = true }) { Icon(Icons.Default.MoreVert, "Menü") }
+        DropdownMenu(open, { open = false }) {
+            DropdownMenuItem({ Text("Box-Verbindung") }, onClick = { open = false; onSettings() },
+                leadingIcon = { Icon(Icons.Default.Settings, null) })
+            DropdownMenuItem({ Text("Über EnigmaPlan") }, onClick = { open = false; onAbout() },
+                leadingIcon = { Icon(Icons.Outlined.Info, null) })
+        }
+    }
+}
+
+@Composable
+private fun AboutDialog(vm: MainVm, onDismiss: () -> Unit) {
+    val ctx = LocalContext.current
+    val version = remember { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }
+    LaunchedEffect(Unit) { vm.loadBoxInfo() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("EnigmaPlan $version") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("Schnell mal das Programmheft durchblättern – tap, tap, tap – fertig. " +
+                    "Oder in Ruhe alle Timer und Aufnahmen verwalten.", fontWeight = FontWeight.SemiBold)
+                Text("Für Enigma2-Receiver mit OpenWebif: Vu+, GigaBlue, Zgemma, Dreambox & Co.",
+                    Modifier.padding(top = 8.dp))
+
+                Text("Verbundene Box", Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleSmall)
+                val b = vm.boxInfo
+                if (b == null) Text(vm.host, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else Text(
+                    listOf(b.model, b.image, "OpenWebif ${b.webif}", "${b.tuners} Tuner", vm.host)
+                        .filter { it.isNotBlank() }.joinToString("\n"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Text("So geht's", Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleSmall)
+                Text("• Sender antippen → Wochenprogramm, wischen = nächster Sender\n" +
+                    "• Kreis neben der Sendung = Aufnahme planen, roter Punkt = Timer gesetzt\n" +
+                    "• Sendung antippen = Details, Timer bearbeiten oder löschen\n" +
+                    "• Leiste oben: Jetzt · 20:15 · Tage", color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Text("Hinweis: EPG", Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleSmall)
+                Text("Die App zeigt das Programm, das die Box gespeichert hat. Fehlt es bei manchen Sendern, " +
+                    "hilft das Box-Plugin EPGRefresh: Es holt nachts im Standby das Programm aller Favoriten.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Text("Entwickler", Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleSmall)
+                Text("© 2026 Thomas Bugge")
+                val uri = LocalUriHandler.current
+                Text("thomas@bgg-mail.de", color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp).clickable { uri.openUri("mailto:thomas@bgg-mail.de?subject=EnigmaPlan") })
+                Text("github.com/thobgg/EnigmaPlan", color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp).clickable { uri.openUri("https://github.com/thobgg/EnigmaPlan") })
+            }
+        },
+        confirmButton = { TextButton(onDismiss) { Text("Schließen") } },
+    )
 }
 
 @Composable

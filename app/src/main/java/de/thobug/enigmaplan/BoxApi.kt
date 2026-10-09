@@ -52,6 +52,8 @@ data class Movie(
     val length: String,
 )
 
+data class BoxInfo(val model: String, val image: String, val webif: String, val tuners: Int)
+
 data class Disk(val free: String, val capacity: String, val usedFraction: Float)
 
 /** Service-Referenzen vergleichbar machen (Timer haben teils Namen/Pfade angehängt). */
@@ -149,6 +151,16 @@ class BoxApi(host: String, private val user: String, private val pass: String) {
                 size = it.s("filesize_readable"), length = it.s("length"),
             )
         }.sortedByDescending { it.time }
+    }
+
+    suspend fun info(): BoxInfo {
+        val i = get("about").optJSONObject("info") ?: JSONObject()
+        return BoxInfo(
+            model = listOf(i.s("brand"), i.s("model")).filter { it.isNotEmpty() }.joinToString(" "),
+            image = listOf(i.s("imagedistro"), i.s("imagever")).filter { it.isNotEmpty() }.joinToString(" "),
+            webif = i.s("webifver").removePrefix("OWIF").trim(),
+            tuners = i.optJSONArray("tuners")?.length() ?: 0,
+        )
     }
 
     suspend fun disk(): Disk? {

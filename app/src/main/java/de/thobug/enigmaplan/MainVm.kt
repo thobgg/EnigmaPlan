@@ -33,6 +33,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     var timers by mutableStateOf(listOf<Timer>())
     var movies by mutableStateOf<List<Movie>?>(null)
     var disk by mutableStateOf<Disk?>(null)
+    var boxInfo by mutableStateOf<BoxInfo?>(null)
 
     var selected by mutableStateOf<Service?>(null)
         private set
@@ -122,6 +123,10 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun loadBoxInfo() {
+        viewModelScope.launch { boxInfo = runCatching { api.info() }.getOrNull() }
+    }
+
     fun refreshTimers() = run { timers = api.timers() }
 
     fun refreshMovies() = run {
@@ -174,7 +179,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         prefs.edit { putString("host", host); putString("user", user); putString("pass", pass) }
         api = BoxApi(host, user, pass)
         bouquets = emptyList(); services = emptyList(); nowNext = emptyMap(); timers = emptyList()
-        movies = null; selected = null; epg.clear()
+        movies = null; selected = null; epg.clear(); boxInfo = null
         refreshAll()
     }
 }
