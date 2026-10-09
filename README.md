@@ -12,6 +12,8 @@ Die App macht bewusst nur das: kein Streaming und keine Fernbedienung, dafür sc
 - **Programm:** Senderliste aus deinen Bouquets mit laufender und nächster Sendung
 - **Senderprogramm über die ganze Woche:** Tagesleiste (Jetzt · 20:15 · Heute · Morgen · …), Wischen wechselt den Sender
 - **Aufnehmen mit einem Tipp:** Aufnahme-Knopf direkt in jeder Zeile, Sendungen mit Timer sind rot markiert
+- **Senderlogos** (Picons von der Box)
+- **Herunterziehen** zum Aktualisieren
 - **Suche** im EPG der Box
 - **Timer:** bearbeiten (Titel, Datum, Zeiten), aktivieren/deaktivieren, löschen, von Hand anlegen, Erledigte aufräumen
 - **Aufnahmen:** Liste mit Größe und Beschreibung, löschen, Anzeige des freien Festplattenplatzes

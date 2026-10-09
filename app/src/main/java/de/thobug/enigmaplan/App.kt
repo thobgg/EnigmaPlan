@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -110,6 +113,16 @@ fun App(vm: MainVm) {
         }
     }
 
+    var pulled by remember { mutableStateOf(false) }
+    LaunchedEffect(vm.loading) { if (!vm.loading) pulled = false }
+    val refresh: () -> Unit = {
+        when (tab) {
+            Tab.Aufnahmen -> vm.refreshMovies()
+            Tab.Suche -> if (vm.searchQuery.isNotBlank()) vm.search(vm.searchQuery) else vm.refreshAll()
+            else -> vm.refreshAll()
+        }
+    }
+
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 600.dp
         val phoneChannel = !wide && tab == Tab.Programm && vm.selected != null
@@ -122,7 +135,11 @@ fun App(vm: MainVm) {
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
+                        if (phoneChannel) Row(verticalAlignment = Alignment.CenterVertically) {
+                            ChannelLogo(vm, vm.selected!!.ref, vm.selected!!.name, 52.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Text(vm.selected!!.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        } else Text(
                             if (phoneChannel) vm.selected!!.name else if (tab == Tab.Programm) "Jetzt im TV" else tab.label,
                             maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
@@ -134,13 +151,7 @@ fun App(vm: MainVm) {
                     },
                     actions = {
                         if (tab == Tab.Programm && vm.bouquets.size > 1 && !phoneChannel) BouquetPicker(vm)
-                        IconButton({
-                            when (tab) {
-                                Tab.Aufnahmen -> vm.refreshMovies()
-                                Tab.Suche -> if (vm.searchQuery.isNotBlank()) vm.search(vm.searchQuery) else vm.refreshAll()
-                                else -> vm.refreshAll()
-                            }
-                        }) { Icon(Icons.Default.Refresh, "Aktualisieren") }
+                        IconButton(refresh) { Icon(Icons.Default.Refresh, "Aktualisieren") }
                         OverflowMenu(onSettings = { settings = true }, onAbout = { about = true })
                     },
                 )
@@ -174,8 +185,12 @@ fun App(vm: MainVm) {
                     VerticalDivider()
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
-                    if (vm.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Box(Modifier.weight(1f)) {
+                    if (vm.loading && !pulled) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    PullToRefreshBox(
+                        isRefreshing = pulled && vm.loading,
+                        onRefresh = { pulled = true; refresh() },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         val off = vm.offline
                         if (off != null && vm.bouquets.isEmpty()) {
                             Offline(off, onRetry = vm::refreshAll, onSettings = { settings = true })

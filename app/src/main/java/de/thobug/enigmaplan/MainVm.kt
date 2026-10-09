@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -34,6 +36,8 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     var movies by mutableStateOf<List<Movie>?>(null)
     var disk by mutableStateOf<Disk?>(null)
     var boxInfo by mutableStateOf<BoxInfo?>(null)
+    /** Senderlogos je normRef; Eintrag null = keins vorhanden. */
+    val picons = mutableStateMapOf<String, ImageBitmap?>()
 
     var selected by mutableStateOf<Service?>(null)
         private set
@@ -123,6 +127,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun loadPicon(ref: String) {
+        val k = normRef(ref)
+        if (k in picons) return
+        picons[k] = null
+        viewModelScope.launch { api.picon(ref)?.let { picons[k] = it.asImageBitmap() } }
+    }
+
     fun loadBoxInfo() {
         viewModelScope.launch { boxInfo = runCatching { api.info() }.getOrNull() }
     }
@@ -179,7 +190,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         prefs.edit { putString("host", host); putString("user", user); putString("pass", pass) }
         api = BoxApi(host, user, pass)
         bouquets = emptyList(); services = emptyList(); nowNext = emptyMap(); timers = emptyList()
-        movies = null; selected = null; epg.clear(); boxInfo = null
+        movies = null; selected = null; epg.clear(); boxInfo = null; picons.clear()
         refreshAll()
     }
 }

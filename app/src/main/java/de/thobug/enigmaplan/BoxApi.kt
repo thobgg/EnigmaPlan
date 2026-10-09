@@ -118,6 +118,21 @@ class BoxApi(host: String, private val user: String, private val pass: String) {
         }
     }
 
+    /** Senderlogo von der Box (OpenWebif /picon), null wenn keins vorhanden. */
+    suspend fun picon(ref: String): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
+        val name = ref.split(':').take(10).joinToString("_") + ".png"
+        val conn = URL("$base/picon/$name").openConnection() as HttpURLConnection
+        conn.connectTimeout = 5000
+        conn.readTimeout = 10000
+        try {
+            if (conn.responseCode == 200) conn.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) } else null
+        } catch (e: IOException) {
+            null
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     suspend fun bouquets() = services(get("getservices"))
     suspend fun services(bref: String) = services(get("getservices", mapOf("sRef" to bref)))
 

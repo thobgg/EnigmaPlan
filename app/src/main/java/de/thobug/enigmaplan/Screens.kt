@@ -2,6 +2,7 @@
 
 package de.thobug.enigmaplan
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,6 +72,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 val RecRed = Color(0xFFE53935)
@@ -112,6 +115,20 @@ fun RowCard(onClick: () -> Unit, selected: Boolean = false, content: @Composable
     ) { Box(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) { content() } }
 }
 
+/** Senderlogo auf dunkler Kachel (Picons sind für dunklen Grund gemacht), sonst Kürzel. */
+@Composable
+fun ChannelLogo(vm: MainVm, ref: String, name: String, width: Dp = 64.dp) {
+    LaunchedEffect(ref) { vm.loadPicon(ref) }
+    val img = vm.picons[normRef(ref)]
+    Box(
+        Modifier.size(width, width * 0.6f).background(Color(0xFF263238), RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (img != null) Image(img, name, Modifier.fillMaxSize().padding(3.dp), contentScale = ContentScale.Fit)
+        else Text(name.replace(" HD", "").take(4), color = Color.White, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+    }
+}
+
 /** Kompakte Zeile für eine Sendung: Uhrzeit, Titel, Aufnahme-Knopf. */
 @Composable
 fun EventRow(vm: MainVm, e: Event, showChannel: Boolean, onClick: () -> Unit, onRec: (Event) -> Unit) {
@@ -130,7 +147,10 @@ fun EventRow(vm: MainVm, e: Event, showChannel: Boolean, onClick: () -> Unit, on
             Text(hm(e.begin), Modifier.width(50.dp).align(Alignment.Top), fontWeight = FontWeight.Bold,
                 color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
             Column(Modifier.weight(1f)) {
-                if (showChannel) Text(e.sname, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (showChannel) Row(Modifier.padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    ChannelLogo(vm, e.sref, e.sname, 40.dp)
+                    Text("  " + e.sname, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Text(e.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (e.short.isNotEmpty() && e.short != e.title)
@@ -193,8 +213,15 @@ private fun ChannelList(vm: MainVm, modifier: Modifier) {
             val cur = ev.firstOrNull { it.end > vm.now }
             val next = ev.firstOrNull { it.begin > (cur?.begin ?: 0) }
             RowCard({ vm.select(s) }, selected = vm.selected?.ref == s.ref) {
-                Column {
-                    Text("${i + 1}  ${s.name}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ChannelLogo(vm, s.ref, s.name)
+                    Text("${i + 1}", Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(s.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (cur == null) {
                         Text("Keine EPG-Daten", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
                     } else {
@@ -216,6 +243,7 @@ private fun ChannelList(vm: MainVm, modifier: Modifier) {
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
+                }
                 }
             }
         }
@@ -354,7 +382,7 @@ fun TimerScreen(vm: MainVm, onTimer: (Timer) -> Unit) {
     LazyVerticalGrid(GRID, contentPadding = BOTTOM) {
         vm.timers.groupBy { localDate(it.begin) }.forEach { (day, list) ->
             item(span = { GridItemSpan(maxLineSpan) }, key = "d$day") { DayHeader(dayLabel(day)) }
-            list.forEach { t -> item(key = "${t.sref}/${t.begin}/${t.end}") { TimerCard(t) { onTimer(t) } } }
+            list.forEach { t -> item(key = "${t.sref}/${t.begin}/${t.end}") { TimerCard(vm, t) { onTimer(t) } } }
         }
         if (done > 0) item(span = { GridItemSpan(maxLineSpan) }) {
             OutlinedButton(vm::cleanupTimers, Modifier.padding(12.dp)) { Text("Erledigte Timer entfernen ($done)") }
@@ -363,10 +391,11 @@ fun TimerScreen(vm: MainVm, onTimer: (Timer) -> Unit) {
 }
 
 @Composable
-private fun TimerCard(t: Timer, onClick: () -> Unit) {
+private fun TimerCard(vm: MainVm, t: Timer, onClick: () -> Unit) {
     RowCard(onClick) {
         Row(Modifier.alpha(if (t.state == 3) 0.55f else 1f)) {
-            Text(hm(t.begin), Modifier.width(52.dp), fontWeight = FontWeight.Bold)
+            ChannelLogo(vm, t.sref, t.sname, 56.dp)
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(t.sname, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(t.name, style = MaterialTheme.typography.titleMedium)

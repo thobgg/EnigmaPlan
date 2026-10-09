@@ -84,7 +84,8 @@ private fun ConfirmDialog(title: String, text: String, confirm: String, onConfir
 fun EventSheet(vm: MainVm, e: Event, onDismiss: () -> Unit, onEditTimer: (Timer) -> Unit) {
     val timer = vm.timerFor(e)
     Sheet(onDismiss) {
-        Text(e.title, style = MaterialTheme.typography.headlineSmall)
+        ChannelLogo(vm, e.sref, e.sname, 80.dp)
+        Text(e.title, Modifier.padding(top = 8.dp), style = MaterialTheme.typography.headlineSmall)
         Meta("${e.sname} · ${dayLabel(e.begin)} · ${hm(e.begin)} – ${hm(e.end)} (${minutes(e.duration)})")
         if (timer != null) Row(Modifier.padding(top = 8.dp)) { Chip("● Timer gesetzt", RecRed, androidx.compose.ui.graphics.Color.White) }
         if (e.short.isNotEmpty() && e.short != e.title)
