@@ -1,8 +1,11 @@
 # EnigmaPlan
 
-Schlanke Android-App, mit der du am Handy oder Tablet das **Fernsehprogramm deines Enigma2-Receivers** durchblätterst und **Aufnahmen planst, verwaltest und löschst**.
+**Schnell mal das Programmheft durchblättern – tap, tap, tap – fertig.**
+Oder in Ruhe alle Timer und Aufnahmen verwalten.
 
-Sie macht bewusst nur das, nicht mehr: kein Streaming und keine Fernbedienung, dafür schnell und übersichtlich.
+EnigmaPlan ist eine schlanke Android-App für deinen **Enigma2-Receiver** (Vu+, GigaBlue, Zgemma, Dreambox & Co.). Du scrollst durch das Wochenprogramm eines Senders und tippst auf den Kreis neben einer Sendung, dann ist die Aufnahme geplant. Mit einem Wisch geht es zum nächsten Sender.
+
+Die App macht bewusst nur das: kein Streaming und keine Fernbedienung, dafür schnell und übersichtlich, am Handy hochkant genauso wie auf dem Tablet.
 
 ## Funktionen
 
