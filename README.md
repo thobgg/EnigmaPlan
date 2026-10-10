@@ -34,7 +34,7 @@ Die aktuelle APK gibt es unter **[Releases](https://github.com/thobgg/EnigmaPlan
 - **Suche** im EPG der Box
 - **Serien-Timer:** Mo–Fr, wöchentlich, täglich oder eigene Wochentage, direkt aus der Sendung („Als Serie aufnehmen“)
 - **Timer:** bearbeiten (Titel, Datum, Zeiten), aktivieren/deaktivieren, löschen, von Hand anlegen, Erledigte aufräumen
-- **Aufnahmen:** Liste mit Größe und Beschreibung, löschen, Anzeige des freien Festplattenplatzes
+- **Aufnahmen:** Liste mit Größe und Beschreibung, **abspielen** im Video-Player des Geräts (z. B. VLC, direkt von der Box gestreamt, spulbar), löschen, Anzeige des freien Festplattenplatzes
 - **Handy und Tablet:** hochkant eine Spalte; auf dem Tablet oder quer die TV-Zeitung oder wahlweise Senderliste und Programm nebeneinander, Timer und Aufnahmen mehrspaltig
 - Material You (Farben passend zum Handy), Dunkelmodus
 
