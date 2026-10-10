@@ -43,6 +43,7 @@ data class Timer(
 
 data class Movie(
     val ref: String,
+    val file: String,
     val title: String,
     val sname: String,
     val description: String,
@@ -73,6 +74,13 @@ private fun JSONObject.i(k: String) = if (has(k) && !isNull(k)) optInt(k) else 0
 /** Zugriff auf die OpenWebif-API der Box. */
 class BoxApi(host: String, private val user: String, private val pass: String) {
     private val base = host.trim().trimEnd('/').let { if (it.startsWith("http")) it else "http://$it" }
+
+    /** Direkte Adresse einer Aufnahme (OpenWebif /file, mit Byte-Ranges, also spulbar). */
+    fun movieUri(m: Movie): android.net.Uri {
+        val b = android.net.Uri.parse(base).buildUpon()
+        if (user.isNotEmpty()) b.encodedAuthority(android.net.Uri.encode(user) + ":" + android.net.Uri.encode(pass) + "@" + android.net.Uri.parse(base).encodedAuthority)
+        return b.appendPath("file").appendQueryParameter("file", m.file).build()
+    }
 
     private suspend fun get(path: String, params: Map<String, Any?> = emptyMap(), post: Boolean = false): JSONObject =
         withContext(Dispatchers.IO) {
@@ -177,7 +185,8 @@ class BoxApi(host: String, private val user: String, private val pass: String) {
         val a = get("movielist").optJSONArray("movies") ?: return emptyList()
         return (0 until a.length()).map { a.getJSONObject(it) }.map {
             Movie(
-                ref = it.s("serviceref"), title = it.s("eventname").ifEmpty { it.s("filename_stripped") },
+                ref = it.s("serviceref"), file = it.s("filename"),
+                title = it.s("eventname").ifEmpty { it.s("filename_stripped") },
                 sname = it.s("servicename"), description = it.s("description"),
                 descriptionExt = it.s("descriptionExtended"), time = it.l("recordingtime"),
                 size = it.s("filesize_readable"), length = it.s("length"),

@@ -212,6 +212,8 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     fun cleanupTimers() = timerAction("Erledigte Timer entfernt", {}) { api.cleanupTimers() }
 
+    fun movieUri(m: Movie) = api.movieUri(m)
+
     fun deleteMovie(m: Movie, done: () -> Unit) = run {
         api.deleteMovie(m)
         done()

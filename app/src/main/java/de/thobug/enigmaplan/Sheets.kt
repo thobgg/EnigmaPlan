@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -251,18 +252,38 @@ private fun RepeatPicker(mask: Int, date: java.time.LocalDate, onChange: (Int) -
 
 /* ------------------------------------------------------------ Aufnahme */
 
+/** Aufnahme im Video-Player des Geräts öffnen (VLC, MX Player …). */
+private fun playMovie(ctx: android.content.Context, uri: android.net.Uri, title: String) {
+    val view = android.content.Intent(android.content.Intent.ACTION_VIEW)
+        .setDataAndType(uri, "video/mp2t")
+        .putExtra("title", title) // VLC zeigt den Titel statt der Adresse
+    try {
+        ctx.startActivity(android.content.Intent.createChooser(view, "Abspielen mit …"))
+    } catch (e: android.content.ActivityNotFoundException) {
+        android.widget.Toast.makeText(ctx, "Kein Video-Player gefunden – z. B. VLC installieren.", android.widget.Toast.LENGTH_LONG).show()
+    }
+}
+
 @Composable
 fun MovieSheet(vm: MainVm, m: Movie, onDismiss: () -> Unit) {
     var askDelete by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
     Sheet(onDismiss) {
         Text(m.title, style = MaterialTheme.typography.headlineSmall)
         Meta(listOfNotNull(m.sname, if (m.time > 0) "${dayLabel(m.time)}, ${hm(m.time)}" else null, m.size).joinToString(" · "))
         if (m.description.isNotEmpty() && m.description != m.title)
             Text(m.description, Modifier.padding(top = 12.dp), fontWeight = FontWeight.SemiBold)
-        if (m.descriptionExt.isNotEmpty()) Text(m.descriptionExt, Modifier.padding(top = 8.dp))
         Button(
+            { playMovie(ctx, vm.movieUri(m), m.title) },
+            Modifier.fillMaxWidth().padding(top = 16.dp), enabled = m.file.isNotEmpty(),
+        ) {
+            Icon(Icons.Default.PlayArrow, null, Modifier.padding(end = 8.dp))
+            Text("Abspielen")
+        }
+        if (m.descriptionExt.isNotEmpty()) Text(m.descriptionExt, Modifier.padding(top = 12.dp))
+        OutlinedButton(
             { askDelete = true }, Modifier.fillMaxWidth().padding(top = 20.dp), enabled = !vm.loading,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
         ) { Text("Aufnahme löschen") }
     }
     if (askDelete) ConfirmDialog(
